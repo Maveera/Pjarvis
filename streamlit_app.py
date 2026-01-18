@@ -1,31 +1,32 @@
 import streamlit as st
-from llama_cpp import Llama
-import os
+from huggingface_hub import InferenceClient
 
-# 1. Load the Model (Jarvis's Local Brain)
-# We use a cached function so the model only loads once
-@st.cache_resource
-def load_jarvis():
-    # You will need to upload a .gguf file to your repo or download it via code
-    # For this example, we assume 'jarvis_model.gguf' is in your repo
-    return Llama(model_path="jarvis_model.gguf", n_ctx=2048)
+# 1. Setup Client
+# Set 'HF_TOKEN' in Streamlit Secrets (Settings > Secrets)
+client = InferenceClient(api_key=st.secrets["HF_TOKEN"])
 
-st.title("J.A.R.V.I.S. Core (Private LLM)")
+st.title("J.A.R.V.I.S. Core")
 
-# 2. Mentorship Logic
-llm = load_jarvis()
+# 2. Mentorship Logic (Socratic Mentor)
+SYSTEM_PROMPT = "You are JARVIS. Be a witty British mentor. Call the user Sir. Guide him with wisdom."
 
-# 3. Create an API-like receiver for your Mobile App
-# URL format: https://your-app.streamlit.app/?prompt=hello
-prompt = st.query_params.get("prompt")
+# 3. Handle Mobile Requests
+# Your phone will call: https://your-app.streamlit.app/?prompt=Hello
+user_input = st.query_params.get("prompt")
 
-if prompt:
-    st.write(f"Incoming Command: {prompt}")
-    output = llm(
-        f"Q: You are JARVIS, a mentor. Answer this briefly and call me Sir: {prompt} A:", 
-        max_tokens=100, 
-        stop=["Q:", "\n"]
+if user_input:
+    response = ""
+    # We use Llama 3.2 3B - Very fast and smart for mentorship
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}, 
+                {"role": "user", "content": user_input}]
+    
+    completion = client.chat.completions.create(
+        model="meta-llama/Llama-3.2-3B-Instruct",
+        messages=messages,
+        max_tokens=200
     )
-    response_text = output["choices"][0]["text"]
-    st.header("JARVIS Response:")
-    st.write(response_text) # Your mobile app will "read" this text
+    
+    reply = completion.choices[0].message.content
+    st.header("JARVIS_RESPONSE_START")
+    st.write(reply)
+    st.header("JARVIS_RESPONSE_END")
