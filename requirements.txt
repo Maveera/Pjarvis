@@ -1,3 +1,2 @@
 streamlit
-llama-cpp-python
-numpy
+huggingface_hub
